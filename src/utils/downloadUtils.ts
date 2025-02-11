@@ -9,7 +9,6 @@ export const downloadAsImage = async (elementRef: React.RefObject<HTMLDivElement
     scale: 2,
     backgroundColor: null,
     onclone: (clonedDoc, element) => {
-      // Ensure stickers are visible in the clone
       const stickers = element.querySelectorAll('[draggable="true"]');
       stickers.forEach((sticker: any) => {
         sticker.style.opacity = '1';
@@ -32,7 +31,6 @@ export const downloadAsPDF = async (elementRef: React.RefObject<HTMLDivElement>)
     scale: 2,
     backgroundColor: null,
     onclone: (clonedDoc, element) => {
-      // Ensure stickers are visible in the clone
       const stickers = element.querySelectorAll('[draggable="true"]');
       stickers.forEach((sticker: any) => {
         sticker.style.opacity = '1';
