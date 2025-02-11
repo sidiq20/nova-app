@@ -39,7 +39,7 @@ export default function LetterEditor() {
     username: 'User',
     isDarkMode: false,
     autoSave: true,
-    fontSize: 16,
+    fontSize: 14,
   });
   const signaturePadRef = useRef<SignaturePad>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -172,7 +172,7 @@ export default function LetterEditor() {
             <Sidebar onClose={() => setShowSidebar(false)} />
           </div>
         </div>
-        
+
         <div className="flex-1">
           <EditorToolbar
             alignment={alignment}
@@ -197,13 +197,13 @@ export default function LetterEditor() {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Write your letter here..."
                   className="w-full resize-none border-0 focus:ring-0 focus:outline-none"
-                  style={{ 
+                  style={{
                     fontFamily: selectedFont,
                     fontSize: `${settings.fontSize}px`
                   }}
                   minRows={10}
                 />
-                
+
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700">Your Signature</label>
@@ -244,7 +244,7 @@ export default function LetterEditor() {
               </div>
 
               {/* Preview Section */}
-              <div 
+              <div
                 ref={containerRef}
                 className={`rounded-2xl p-4 lg:p-8 transition-colors duration-200 border-2 ${
                   colors.find(c => c.id === selectedColor)?.border || 'border-gray-200'
@@ -266,7 +266,7 @@ export default function LetterEditor() {
                       style={{
                         textAlign: alignment,
                         fontFamily: selectedFont,
-                        fontSize: `${settings.fontSize}px`
+                        fontSize: `${settings.fontSize * 1.5}px`
                       }}
                     >
                       {content || 'Your letter preview will appear here...'}
