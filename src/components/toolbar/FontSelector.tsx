@@ -49,7 +49,7 @@ export default function FontSelector({ selected, onSelect, mobileView = false }:
             exit={{ opacity: 0, y: 10 }}
             className="absolute top-full left-0 mt-2 w-64 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-4 border border-gray-100 z-50"
           >
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {fonts.map((font) => (
                 <motion.button
                   key={font.id}
