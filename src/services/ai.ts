@@ -11,14 +11,49 @@ export async function generateLetter({
   context = ''
 }: GenerateLetterParams): Promise<string> {
   try {
-    // Try OpenAI first if API key is available
+    // Try DeepSeek first
+    if (import.meta.env.VITE_DEEPSEEK_API_KEY) {
+      try {
+        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'deepseek-chat',
+            messages: [
+              {
+                role: "system",
+                content: "You are a helpful assistant that writes thoughtful, personal letters. Your responses should be warm, genuine, and well-structured."
+              },
+              {
+                role: "user",
+                content: `Previous context:\n${context}\n\nWrite a letter response for: ${prompt}`
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 500
+          })
+        });
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (content) return content;
+      } catch (error) {
+        console.warn('DeepSeek error, falling back to OpenAI:', error);
+      }
+    }
+
+    // Try OpenAI second
     if (import.meta.env.VITE_OPENAI_API_KEY) {
       try {
         const openai = new OpenAI({
           apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+          dangerouslyAllowBrowser: true
         });
 
-        const response = await openai.chat.completions.create({
+        const completion = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
             {
@@ -34,13 +69,18 @@ export async function generateLetter({
           max_tokens: 500
         });
 
-        return response.choices[0]?.message?.content || '';
+        const content = completion.choices[0]?.message?.content;
+        if (content) return content;
       } catch (error) {
         console.warn('OpenAI error, falling back to HuggingFace:', error);
       }
     }
 
-    // Always fallback to HuggingFace if OpenAI fails or is not configured
+    // Fallback to HuggingFace
+    if (!import.meta.env.VITE_HUGGINGFACE_API_KEY) {
+      throw new Error('No API keys configured');
+    }
+
     const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY);
 
     const response = await hf.textGeneration({
@@ -62,14 +102,17 @@ Write a well-structured, coherent response that would be appropriate for a lette
       }
     });
 
-    // Clean up the response
     let text = response.generated_text;
     text = text.replace(/\[INST\].*?\[\/INST\]/s, '').trim();
     text = text.replace(/<s>|<\/s>/g, '').trim();
 
+    if (!text) {
+      throw new Error('Empty response from AI');
+    }
+
     return text;
   } catch (error) {
     console.error('AI generation error:', error);
-    return "I apologize, but I'm having trouble generating content right now. You can try writing your message manually, or try again later.";
+    throw error;
   }
 }
