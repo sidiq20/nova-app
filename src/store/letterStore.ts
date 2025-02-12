@@ -49,7 +49,7 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
   fetchLetters: async () => {
     set({ isLoading: true, error: null });
     try {
-      const user = auth.currentUser;
+      const user = auth?.currentUser;
       if (!user) {
         set({ letters: [], isLoading: false });
         return;
