@@ -29,9 +29,9 @@ export default function StickerSelector({ onSelect }: StickerSelectorProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className="absolute top-full left-0 mt-2 w-64 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-4 border border-gray-100"
+            className="absolute top-full left-0 mt-2 w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-4 border border-gray-100 z-50"
           >
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar">
               {stickers.map((sticker) => (
                 <button
                   key={sticker.id}
