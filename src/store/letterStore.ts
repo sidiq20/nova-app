@@ -125,7 +125,7 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
   },
 
   updateLetter: async (id, updates) => {
-    const user = auth.currentUser;
+    const user = auth?.currentUser;
     if (!user) {
       set({ error: 'Please sign in to update the letter.' });
       return;
