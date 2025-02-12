@@ -11,8 +11,8 @@ import SettingsModal from './modals/SettingsModal';
 import ShareModal from './modals/ShareModal';
 import GenerateLetterModal from './modals/GenerateLetterModal';
 import { papers } from '../data/papers';
-import { stickers } from '../data/stickers';
 import { colors } from '../data/colors';
+import { stickers } from '../data/stickers';
 import { downloadAsImage, downloadAsPDF } from '../utils/downloadUtils';
 
 interface Sticker {
@@ -23,6 +23,11 @@ interface Sticker {
   rotation: number;
   size: number;
 }
+
+const SAFE_MARGIN = 10; // 10% margin from edges
+const MIN_STICKER_SIZE = 0.5;
+const MAX_STICKER_SIZE = 2.5;
+const DEFAULT_STICKER_SIZE = 1;
 
 export default function LetterEditor() {
   const [content, setContent] = useState('');
@@ -61,13 +66,14 @@ export default function LetterEditor() {
   }, []);
 
   const addSticker = (type: string) => {
+    // Place new sticker in the center with safe margins
     const newSticker = {
       id: Math.random().toString(),
       type,
-      x: 50,
-      y: 50,
-      rotation: Math.random() * 30 - 15,
-      size: 1
+      x: 50, // Center horizontally
+      y: 50, // Center vertically
+      rotation: Math.random() * 30 - 15, // Random rotation between -15 and 15 degrees
+      size: DEFAULT_STICKER_SIZE
     };
     setPlacedStickers([...placedStickers, newSticker]);
   };
@@ -78,40 +84,74 @@ export default function LetterEditor() {
   };
 
   const handleStickerMove = (stickerId: string, x: number, y: number) => {
+    const sticker = placedStickers.find(s => s.id === stickerId);
+    if (!sticker) return;
+
+    // Calculate safe boundaries based on sticker size
+    const stickerSize = sticker.size || DEFAULT_STICKER_SIZE;
+    const margin = SAFE_MARGIN * stickerSize;
+
+    // Clamp coordinates to ensure sticker stays within bounds with margin
+    const clampedX = Math.max(margin, Math.min(100 - margin, x));
+    const clampedY = Math.max(margin, Math.min(100 - margin, y));
+
     setPlacedStickers(stickers =>
       stickers.map(s =>
-        s.id === stickerId ? { ...s, x, y } : s
+        s.id === stickerId ? { ...s, x: clampedX, y: clampedY } : s
       )
     );
   };
 
+  const handleStickerSizeChange = (size: number) => {
+    if (!selectedSticker) return;
+
+    // Clamp size between min and max values
+    const clampedSize = Math.max(MIN_STICKER_SIZE, Math.min(MAX_STICKER_SIZE, size));
+
+    // Calculate if new size would push sticker out of bounds
+    const margin = SAFE_MARGIN * clampedSize;
+    let newX = selectedSticker.x;
+    let newY = selectedSticker.y;
+
+    // Adjust position if necessary to keep sticker in bounds
+    if (newX < margin) newX = margin;
+    if (newX > 100 - margin) newX = 100 - margin;
+    if (newY < margin) newY = margin;
+    if (newY > 100 - margin) newY = 100 - margin;
+
+    setPlacedStickers(stickers =>
+      stickers.map(s =>
+        s.id === selectedSticker.id
+          ? { ...s, size: clampedSize, x: newX, y: newY }
+          : s
+      )
+    );
+    setSelectedSticker(prev => prev ? { ...prev, size: clampedSize, x: newX, y: newY } : null);
+  };
+
   const handleStickerDuplicate = () => {
-    if (selectedSticker) {
-      const newSticker = {
-        ...selectedSticker,
-        id: Math.random().toString(),
-        x: 50,
-        y: 50
-      };
-      setPlacedStickers([...placedStickers, newSticker]);
-    }
+    if (!selectedSticker) return;
+
+    // Place duplicated sticker slightly offset from original
+    const offset = 10; // 10% offset
+    const newX = Math.min(selectedSticker.x + offset, 100 - SAFE_MARGIN * selectedSticker.size);
+    const newY = Math.min(selectedSticker.y + offset, 100 - SAFE_MARGIN * selectedSticker.size);
+
+    const newSticker = {
+      ...selectedSticker,
+      id: Math.random().toString(),
+      x: newX,
+      y: newY,
+      rotation: Math.random() * 30 - 15 // New random rotation
+    };
+
+    setPlacedStickers([...placedStickers, newSticker]);
   };
 
   const handleStickerDelete = () => {
     if (selectedSticker) {
       setPlacedStickers(placedStickers.filter(s => s.id !== selectedSticker.id));
       setSelectedSticker(null);
-    }
-  };
-
-  const handleStickerSizeChange = (size: number) => {
-    if (selectedSticker) {
-      setPlacedStickers(stickers =>
-        stickers.map(s =>
-          s.id === selectedSticker.id ? { ...s, size } : s
-        )
-      );
-      setSelectedSticker(prev => prev ? { ...prev, size } : null);
     }
   };
 
@@ -283,9 +323,6 @@ export default function LetterEditor() {
                       fontFamily: `${selectedFont}, serif`,
                       fontSize: `clamp(${settings.fontSize}px, 2vw, ${settings.fontSize * 1.5}px)`
                     }}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
                   >
                     {content || (
                       <motion.span
@@ -330,6 +367,7 @@ export default function LetterEditor() {
                             top: `${sticker.y}%`,
                             fontSize: 'clamp(1rem, 3vw, 2rem)',
                             zIndex: 20,
+                            transform: `translate(-50%, -50%)`, // Center the sticker on its position
                           }}
                           initial={{ scale: 0, rotate: 0 }}
                           animate={{
@@ -341,19 +379,18 @@ export default function LetterEditor() {
                           }}
                           drag
                           dragMomentum={false}
-                          onDrag={(e, info) => {
+                          dragConstraints={previewRef}
+                          onDragEnd={(e, info) => {
                             if (!previewRef.current) return;
                             const rect = previewRef.current.getBoundingClientRect();
                             const x = ((info.point.x - rect.left) / rect.width) * 100;
                             const y = ((info.point.y - rect.top) / rect.height) * 100;
-                            const clampedX = Math.max(0, Math.min(100, x));
-                            const clampedY = Math.max(0, Math.min(100, y));
-                            handleStickerMove(sticker.id, clampedX, clampedY);
+                            handleStickerMove(sticker.id, x, y);
                           }}
                           onClick={(e) => handleStickerClick(sticker, e)}
                         >
                           <motion.div
-                            className="filter drop-shadow-lg"
+                            className="filter drop-shadow-lg select-none"
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                           >
