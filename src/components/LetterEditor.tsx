@@ -308,7 +308,7 @@ export default function LetterEditor() {
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               </div>
             </div>
           </div>
