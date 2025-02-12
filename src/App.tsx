@@ -8,6 +8,7 @@ import Hero from './components/Hero';
 export default function App() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
 
   useEffect(() => {
