@@ -25,6 +25,7 @@ export default function GenerateLetterModal({
   }]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -41,6 +42,7 @@ export default function GenerateLetterModal({
 
     const userMessage = input.trim();
     setInput('');
+    setError(null);
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
@@ -52,10 +54,8 @@ export default function GenerateLetterModal({
 
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (error) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'I apologize, but I encountered an error. Please try again.'
-      }]);
+      setError('Failed to generate response. Please try again.');
+      console.error('Generation error:', error);
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function GenerateLetterModal({
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
             {messages.map((message, index) => (
               <motion.div
                 key={index}
@@ -130,6 +130,11 @@ export default function GenerateLetterModal({
                 )}
               </motion.div>
             ))}
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
+                {error}
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
