@@ -68,41 +68,55 @@ export default function Sidebar({ onClose }: SidebarProps) {
         </div>
       </div>
 
-      {/* Letter History */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4">
-          {filteredLetters.map((letter) => (
-            <motion.div
-              key={letter.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                currentLetter?.id === letter.id
-                  ? 'border-rose-500 bg-rose-50'
-                  : 'border-gray-200 hover:border-rose-300'
-              }`}
-              onClick={() => {
-                setCurrentLetter(letter);
-                if (onClose) onClose();
-              }}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-medium mb-1">{letter.title || 'Untitled Letter'}</h3>
-                  <p className="text-sm text-gray-500 mb-2 line-clamp-2">{letter.content}</p>
-                </div>
-                {letter.favorite && (
-                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Clock className="w-4 h-4" />
-                {format(new Date(letter.updatedAt), 'MMM d, yyyy')}
-              </div>
-            </motion.div>
-          ))}
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border-b border-red-100">
+          <p className="text-sm text-red-600">{error}</p>
         </div>
-      </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-rose-500 border-t-transparent"></div>
+        </div>
+      ) : (
+        /* Letter History */
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            {filteredLetters.map((letter) => (
+              <motion.div
+                key={letter.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
+                  currentLetter?.id === letter.id
+                    ? 'border-rose-500 bg-rose-50'
+                    : 'border-gray-200 hover:border-rose-300'
+                }`}
+                onClick={() => {
+                  setCurrentLetter(letter);
+                  if (onClose) onClose();
+                }}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-medium mb-1">{letter.title || 'Untitled Letter'}</h3>
+                    <p className="text-sm text-gray-500 mb-2 line-clamp-2">{letter.content}</p>
+                  </div>
+                  {letter.favorite && (
+                    <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  {format(new Date(letter.updatedAt), 'MMM d, yyyy')}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Settings */}
       <div className="p-4 border-t border-gray-200">
