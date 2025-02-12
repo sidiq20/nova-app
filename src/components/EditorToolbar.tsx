@@ -16,6 +16,8 @@ interface EditorToolbarProps {
   setSelectedFont: (font: string) => void;
   onAddSticker: (type: string) => void;
   onDownload: () => void;
+  onOpenSettings: () => void;
+  onShare: () => void;
 }
 
 export default function EditorToolbar({
@@ -28,7 +30,9 @@ export default function EditorToolbar({
   selectedFont,
   setSelectedFont,
   onAddSticker,
-  onDownload
+  onDownload,
+  onOpenSettings,
+  onShare
 }: EditorToolbarProps) {
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100">
@@ -69,22 +73,26 @@ export default function EditorToolbar({
                 ))}
               </div>
 
-            <div className="h-6 w-px bg-gray-200" />
-            
-            <StickerSelector onSelect={onAddSticker} />
+              <div className="h-6 w-px bg-gray-200" />
+
+              <StickerSelector onSelect={onAddSticker} mobileView={false} />
+            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
-            <button 
+          <div className="flex items-center space-x-2">
+            <button
               onClick={onDownload}
-              className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-colors flex items-center space-x-2"
+              className="p-2 lg:px-4 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-colors flex items-center space-x-2"
             >
               <Download className="w-5 h-5" />
-              <span>Download</span>
+              <span className="hidden lg:inline">Download</span>
             </button>
-            <button className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-colors flex items-center space-x-2">
+            <button
+              onClick={onShare}
+              className="p-2 lg:px-4 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-colors flex items-center space-x-2"
+            >
               <Share2 className="w-5 h-5" />
-              <span>Share</span>
+              <span className="hidden lg:inline">Share</span>
             </button>
             <button
               onClick={onOpenSettings}
