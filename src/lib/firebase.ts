@@ -2,9 +2,9 @@ import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 
-let app: FirebaseApp;
-let db: Firestore;
-let auth: Auth;
+let app: FirebaseApp | undefined;
+let db: Firestore | undefined;
+let auth: Auth | undefined;
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,13 +15,33 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-try {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-  auth = getAuth(app);
-} catch (error) {
-  console.error('Firebase initialization error:', error);
-  throw new Error('Failed to initialize Firebase. Please check your configuration.');
+// Initialize Firebase only if we have all required config
+const hasRequiredConfig = Object.values(firebaseConfig).every(value =>
+  value &&
+  value !== 'undefined' &&
+  !value.includes('your-') &&
+  value.length > 0
+);
+
+if (hasRequiredConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+
+    // Initialize auth persistence
+    auth.setPersistence('browserLocal');
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+  }
+} else {
+  console.warn('Firebase configuration is incomplete. Some features may not work.');
 }
 
+// Export initialized instances or undefined
 export { app, db, auth };
+
+// Helper function to check if Firebase is ready
+export const isFirebaseReady = () => {
+  return Boolean(app && db && auth);
+};
