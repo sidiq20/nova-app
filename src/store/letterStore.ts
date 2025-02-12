@@ -77,8 +77,7 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
       set({ letters, isLoading: false });
     } catch (error) {
       console.error('Error fetching letters:', error);
-      set({ 
-        letters: [], 
+      set({
         isLoading: false,
         error: 'Failed to fetch letters. Please try again later.'
       });
@@ -113,7 +112,7 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
         id: docRef.id,
         ...newLetter
       } as Letter;
-      
+
       set(state => ({
         letters: [createdLetter, ...state.letters],
         currentLetter: createdLetter
