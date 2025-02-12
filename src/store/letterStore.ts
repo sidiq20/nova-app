@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { collection, query, where, orderBy, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { db, auth, isFirebaseReady } from '../lib/firebase';
 
 interface Letter {
   id: string;
@@ -47,16 +47,26 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
   clearError: () => set({ error: null }),
 
   fetchLetters: async () => {
+    if (!isFirebaseReady()) {
+      set({
+        letters: [],
+        isLoading: false,
+        error: 'Firebase is not initialized. Some features may be limited.'
+      });
+      return;
+    }
+
     set({ isLoading: true, error: null });
+
     try {
       const user = auth?.currentUser;
-      if (!user) {
-        set({ letters: [], isLoading: false });
+      if (!user || !db) {
+        set({
+          letters: [],
+          isLoading: false,
+          error: user ? 'Database not available' : 'Please sign in to view your letters'
+        });
         return;
-      }
-
-      if (!db) {
-        throw new Error('Firestore is not initialized');
       }
 
       const q = query(
@@ -74,7 +84,7 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
         stickers: doc.data().stickers || []
       })) as Letter[];
 
-      set({ letters, isLoading: false });
+      set({ letters, isLoading: false, error: null });
     } catch (error) {
       console.error('Error fetching letters:', error);
       set({
@@ -85,14 +95,14 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
   },
 
   createLetter: async (letter) => {
-    const user = auth?.currentUser;
-    if (!user) {
-      set({ error: 'Please sign in to create a letter.' });
+    if (!isFirebaseReady()) {
+      set({ error: 'Firebase is not initialized. Unable to save letter.' });
       return;
     }
 
-    if (!db) {
-      set({ error: 'Database is not initialized' });
+    const user = auth?.currentUser;
+    if (!user || !db) {
+      set({ error: 'Please sign in to save your letter.' });
       return;
     }
 
@@ -115,23 +125,24 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
 
       set(state => ({
         letters: [createdLetter, ...state.letters],
-        currentLetter: createdLetter
+        currentLetter: createdLetter,
+        error: null
       }));
     } catch (error) {
       console.error('Error creating letter:', error);
-      set({ error: 'Failed to create letter. Please try again.' });
+      set({ error: 'Failed to save letter. Please try again.' });
     }
   },
 
   updateLetter: async (id, updates) => {
-    const user = auth?.currentUser;
-    if (!user) {
-      set({ error: 'Please sign in to update the letter.' });
+    if (!isFirebaseReady()) {
+      set({ error: 'Firebase is not initialized. Unable to update letter.' });
       return;
     }
 
-    if (!db) {
-      set({ error: 'Database is not initialized' });
+    const user = auth?.currentUser;
+    if (!user || !db) {
+      set({ error: 'Please sign in to update your letter.' });
       return;
     }
 
@@ -142,9 +153,9 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
         ...updates,
         updatedAt: new Date()
       };
-      
+
       await updateDoc(letterRef, updateData);
-      
+
       set(state => ({
         letters: state.letters.map(letter =>
           letter.id === id
@@ -153,7 +164,8 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
         ),
         currentLetter: state.currentLetter?.id === id
           ? { ...state.currentLetter, ...updateData }
-          : state.currentLetter
+          : state.currentLetter,
+        error: null
       }));
     } catch (error) {
       console.error('Error updating letter:', error);
