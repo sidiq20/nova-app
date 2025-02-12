@@ -12,12 +12,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const letters = useLetterStore(state => state.letters);
   const currentLetter = useLetterStore(state => state.currentLetter);
   const searchQuery = useLetterStore(state => state.searchQuery);
+  const error = useLetterStore(state => state.error);
+  const isLoading = useLetterStore(state => state.isLoading);
   const setCurrentLetter = useLetterStore(state => state.setCurrentLetter);
   const setSearchQuery = useLetterStore(state => state.setSearchQuery);
   const fetchLetters = useLetterStore(state => state.fetchLetters);
 
   useEffect(() => {
-    fetchLetters();
+    fetchLetters().catch(console.error);
   }, [fetchLetters]);
 
   const filteredLetters = letters.filter(letter =>
