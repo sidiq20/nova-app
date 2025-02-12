@@ -8,13 +8,73 @@
   }
 }
 
+/* Custom scrollbar styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #e11d48 #fee2e2;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #fee2e2;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #e11d48;
+  border-radius: 3px;
+}
+
+/* Font loading optimization */
+@font-face {
+  font-family: 'Great Vibes';
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/greatvibes/v15/RWmMoKWR9v4ksMfaWd_JN9XFiaQ.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Dancing Script';
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/dancingscript/v24/If2cXTr6YS-zF4S-kcSWSVi_sxjsohD9F50Ruu7BMSo3ROp6.woff2') format('woff2');
+}
+
+/* Ensure all fonts are properly loaded */
+.font-great-vibes { font-family: 'Great Vibes', cursive; }
+.font-dancing-script { font-family: 'Dancing Script', cursive; }
+.font-parisienne { font-family: 'Parisienne', cursive; }
+.font-playfair { font-family: 'Playfair Display', serif; }
+.font-lora { font-family: 'Lora', serif; }
+.font-cormorant { font-family: 'Cormorant Garamond', serif; }
+.font-crimson { font-family: 'Crimson Pro', serif; }
+.font-petit-formal { font-family: 'Petit Formal Script', cursive; }
+.font-pinyon { font-family: 'Pinyon Script', cursive; }
+.font-tangerine { font-family: 'Tangerine', cursive; }
+.font-alex-brush { font-family: 'Alex Brush', cursive; }
+.font-sacramento { font-family: 'Sacramento', cursive; }
+.font-satisfy { font-family: 'Satisfy', cursive; }
+
 .prose {
   max-width: none;
 }
 
+/* Preview improvements */
+.preview-content {
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+/* Sticker improvements */
+.sticker {
+  pointer-events: auto;
+  user-select: none;
+  will-change: transform;
+}
+
 /* Paper texture and animations */
 .paper-texture {
-  background-image: url('https://images.unsplash.com/photo-1597336374828-43e9de844c61?auto=format&fit=crop&q=80&w=2000');
   background-size: cover;
   background-position: center;
 }
@@ -28,14 +88,10 @@
 
 /* Loading animation */
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
+}1
