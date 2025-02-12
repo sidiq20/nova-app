@@ -12,14 +12,14 @@ interface StickerModalProps {
   size: number;
 }
 
-export default function StickerModal({ 
-  sticker, 
-  onClose, 
-  onDuplicate, 
+export default function StickerModal({
+  sticker,
+  onClose,
+  onDuplicate,
   onDelete,
   onSizeChange,
   onMove,
-  size 
+  size
 }: StickerModalProps) {
   if (!sticker) return null;
 
@@ -36,12 +36,14 @@ export default function StickerModal({
           initial={{ scale: 0.9 }}
           animate={{ scale: 1 }}
           exit={{ scale: 0.9 }}
-          className="bg-white rounded-lg shadow-xl p-6 w-80"
+          className="bg-white rounded-lg shadow-xl w-80 max-h-[80vh] flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
-          <h3 className="text-lg font-semibold mb-4">Sticker Options</h3>
-          
-          <div className="space-y-4">
+          <div className="sticky top-0 bg-white z-10 p-6 pb-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold">Sticker Options</h3>
+          </div>
+
+          <div className="overflow-y-auto flex-1 p-6 space-y-6 custom-scrollbar">
             {/* Size Control */}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -97,7 +99,7 @@ export default function StickerModal({
 
             <button
               onClick={onDuplicate}
-              className="w-full flex items-center justify-center space-x-2 p-3 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100"
+              className="w-full flex items-center justify-center space-x-2 p-3 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors"
             >
               <Copy className="w-5 h-5" />
               <span>Duplicate Sticker</span>
@@ -105,7 +107,7 @@ export default function StickerModal({
 
             <button
               onClick={onDelete}
-              className="w-full flex items-center justify-center space-x-2 p-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+              className="w-full flex items-center justify-center space-x-2 p-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
             >
               <Trash2 className="w-5 h-5" />
               <span>Delete Sticker</span>
