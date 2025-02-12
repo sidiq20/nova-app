@@ -92,6 +92,11 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
       return;
     }
 
+    if (!db) {
+      set({ error: 'Database is not initialized' });
+      return;
+    }
+
     try {
       set({ error: null });
       const now = new Date();
