@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wand2, X, Loader2 } from 'lucide-react';
+import { Wand2, X, Loader2, Send, User, Bot } from 'lucide-react';
 import { generateLetter } from '../../services/ai';
+
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 interface GenerateLetterModalProps {
   isOpen: boolean;
@@ -14,36 +19,51 @@ export default function GenerateLetterModal({
   onClose,
   onGenerated
 }: GenerateLetterModalProps) {
-  const [recipient, setRecipient] = useState('');
-  const [occasion, setOccasion] = useState('');
-  const [tone, setTone] = useState<'romantic' | 'playful' | 'poetic' | 'formal'>('romantic');
-  const [length, setLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [messages, setMessages] = useState<Message[]>([{
+    role: 'assistant',
+    content: 'Hello! I can help you write your letter. What would you like to write about?'
+  }]);
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const handleGenerate = async () => {
-    if (!recipient) {
-      setError('Please enter a recipient name');
-      return;
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMessage = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
-    setError('');
 
     try {
-      const generatedContent = await generateLetter({
-        recipient,
-        occasion,
-        tone,
-        length
+      const response = await generateLetter({
+        prompt: userMessage,
+        context: messages.map(m => `${m.role}: ${m.content}`).join('\n')
       });
-      onGenerated(generatedContent);
-      onClose();
+
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to generate letter');
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error. Please try again.'
+      }]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUseContent = (content: string) => {
+    onGenerated(content);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -61,95 +81,81 @@ export default function GenerateLetterModal({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl shadow-xl p-6 w-[400px] max-w-[90vw]"
+          className="bg-white rounded-2xl shadow-xl w-[800px] max-w-[90vw] max-h-[90vh] flex flex-col"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">Generate Love Letter</h3>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center gap-2">
+              <Wand2 className="w-6 h-6 text-rose-500" />
+              <h3 className="text-xl font-semibold text-gray-900">AI Letter Assistant</h3>
+            </div>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Recipient's Name
-              </label>
-              <input
-                type="text"
-                value={recipient}
-                onChange={e => setRecipient(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                placeholder="Enter name"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Occasion (Optional)
-              </label>
-              <input
-                type="text"
-                value={occasion}
-                onChange={e => setOccasion(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                placeholder="Valentine's Day, Anniversary, etc."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tone
-              </label>
-              <select
-                value={tone}
-                onChange={e => setTone(e.target.value as typeof tone)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {messages.map((message, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex gap-3 ${message.role === 'assistant' ? 'items-start' : 'items-start justify-end'}`}
               >
-                <option value="romantic">Romantic</option>
-                <option value="playful">Playful</option>
-                <option value="poetic">Poetic</option>
-                <option value="formal">Formal</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Length
-              </label>
-              <select
-                value={length}
-                onChange={e => setLength(e.target.value as typeof length)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-              >
-                <option value="short">Short</option>
-                <option value="medium">Medium</option>
-                <option value="long">Long</option>
-              </select>
-            </div>
-
-            {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                {error}
-              </div>
-            )}
-
-            <button
-              onClick={handleGenerate}
-              disabled={loading}
-              className="w-full py-3 px-4 bg-rose-500 text-white rounded-lg hover:bg-rose-600 focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <Wand2 className="w-5 h-5 mr-2" />
-                  Generate Letter
-                </>
-              )}
-            </button>
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-5 h-5 text-rose-600" />
+                  </div>
+                )}
+                <div className={`
+                  max-w-[80%] rounded-2xl p-4 whitespace-pre-wrap
+                  ${message.role === 'assistant'
+                    ? 'bg-white border border-gray-200'
+                    : 'bg-rose-500 text-white'}
+                `}>
+                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  {message.role === 'assistant' && message.content.length > 50 && (
+                    <button
+                      onClick={() => handleUseContent(message.content)}
+                      className="mt-2 text-xs text-rose-600 hover:text-rose-700 font-medium"
+                    >
+                      Use this content
+                    </button>
+                  )}
+                </div>
+                {message.role === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center flex-shrink-0">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+            <div ref={messagesEndRef} />
           </div>
+
+          <form onSubmit={handleSubmit} className="p-6 border-t border-gray-200">
+            <div className="relative">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                className="w-full pl-4 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
+                rows={3}
+                disabled={loading}
+              />
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                className="absolute right-3 bottom-3 p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </form>
         </motion.div>
       </motion.div>
     </AnimatePresence>
