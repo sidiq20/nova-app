@@ -11,10 +11,24 @@ export default function App() {
   const [showEditor, setShowEditor] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    if (!auth) {
+      setError('Firebase authentication is not initialized. Please check your configuration.');
       setLoading(false);
-    });
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth,
+      (user) => {
+        setUser(user);
+        setLoading(false);
+        setError(null);
+      },
+      (error) => {
+        console.error('Auth state change error:', error);
+        setError('Authentication error occurred. Please try again later.');
+        setLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
@@ -23,6 +37,21 @@ export default function App() {
     return (
       <div className="min-h-screen bg-rose-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-rose-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-rose-50 flex items-center justify-center">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full mx-4">
+          <div className="text-red-500 text-center mb-4">⚠️</div>
+          <h2 className="text-xl font-semibold text-gray-900 text-center mb-4">Configuration Error</h2>
+          <p className="text-gray-600 text-center mb-6">{error}</p>
+          <p className="text-sm text-gray-500 text-center">
+            Please ensure all required environment variables are properly set.
+          </p>
+        </div>
       </div>
     );
   }
