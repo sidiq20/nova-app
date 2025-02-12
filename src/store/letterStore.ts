@@ -55,6 +55,10 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
         return;
       }
 
+      if (!db) {
+        throw new Error('Firestore is not initialized');
+      }
+
       const q = query(
         collection(db, 'letters'),
         where('userId', '==', user.uid),
