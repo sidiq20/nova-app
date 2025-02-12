@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import SignaturePad from 'react-signature-canvas';
-import { Trash2, Download, FileImage, File as FilePdf, Share2, Menu } from 'lucide-react';
+import { Trash2, Download, FileImage, File as FilePdf, Share2, Menu, Sparkles } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLetterStore } from '../store/letterStore';
@@ -9,6 +9,7 @@ import EditorToolbar from './EditorToolbar';
 import StickerModal from './modals/StickerModal';
 import SettingsModal from './modals/SettingsModal';
 import ShareModal from './modals/ShareModal';
+import GenerateLetterModal from './modals/GenerateLetterModal';
 import { papers } from '../data/papers';
 import { stickers } from '../data/stickers';
 import { colors } from '../data/colors';
@@ -34,6 +35,7 @@ export default function LetterEditor() {
   const [isDragging, setIsDragging] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [settings, setSettings] = useState({
     username: 'User',
@@ -55,8 +57,8 @@ export default function LetterEditor() {
       const newSticker = {
         ...selectedSticker,
         id: Math.random().toString(),
-        x: 50, // Center horizontally
-        y: 50  // Center vertically
+        x: 50,
+        y: 50
       };
       setPlacedStickers([...placedStickers, newSticker]);
     }
@@ -142,10 +144,14 @@ export default function LetterEditor() {
     setSettings(prev => ({ ...prev, ...newSettings }));
   };
 
+  const handleGeneratedContent = (generatedContent: string) => {
+    setContent(generatedContent);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col lg:flex-row">
-        {/* Mobile Header */}
+        {/* Mobile Header - Simplified with just icons */}
         <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
@@ -153,13 +159,26 @@ export default function LetterEditor() {
           >
             <Menu className="w-6 h-6" />
           </button>
-          <h1 className="text-xl font-semibold">Nova Letter</h1>
-          <button
-            onClick={() => setShowShareModal(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg"
-          >
-            <Share2 className="w-6 h-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handleDownload('pdf')}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <FilePdf className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => handleDownload('image')}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <FileImage className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              <Share2 className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Sidebar */}
@@ -186,6 +205,7 @@ export default function LetterEditor() {
             onAddSticker={addSticker}
             onOpenSettings={() => setShowSettings(true)}
             onShare={() => setShowShareModal(true)}
+            onDownload={() => handleDownload('pdf')}
           />
 
           <div className="max-w-[1920px] mx-auto p-4 lg:p-8">
@@ -203,6 +223,17 @@ export default function LetterEditor() {
                   }}
                   minRows={10}
                 />
+
+                {/* AI Generation Button */}
+                <div className="mt-4">
+                  <button
+                    onClick={() => setShowGenerateModal(true)}
+                    className="w-full flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-rose-400 to-rose-500 text-white rounded-lg hover:from-rose-500 hover:to-rose-600 transition-all duration-200 group"
+                  >
+                    <Sparkles className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    <span>Generate with AI</span>
+                  </button>
+                </div>
 
                 <div className="mt-6">
                   <div className="flex items-center justify-between mb-2">
@@ -243,7 +274,7 @@ export default function LetterEditor() {
                 </div>
               </div>
 
-              {/* Preview Section */}
+              {/* Preview Section - Increased width and better padding */}
               <div
                 ref={containerRef}
                 className={`rounded-2xl p-4 lg:p-8 transition-colors duration-200 border-2 ${
@@ -251,30 +282,37 @@ export default function LetterEditor() {
                 }`}
                 onDragOver={(e) => e.preventDefault()}
               >
-                <div
+                <motion.div
                   ref={previewRef}
-                  className="bg-white rounded-2xl shadow-lg min-h-[600px] relative overflow-hidden"
+                  className="bg-white rounded-2xl shadow-lg min-h-[800px] relative overflow-hidden"
                   style={{
                     backgroundImage: `url(${papers[selectedPaper].full})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                   }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                 >
                   <div className="absolute inset-0 bg-white/90">
-                    <div
-                      className="p-8 whitespace-pre-wrap"
+                    <motion.div
+                      className="p-12 lg:p-16 whitespace-pre-wrap mx-auto"
                       style={{
+                        maxWidth: '90%',
                         textAlign: alignment,
                         fontFamily: selectedFont,
                         fontSize: `${settings.fontSize * 1.5}px`
                       }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
                     >
                       {content || 'Your letter preview will appear here...'}
-                    </div>
+                    </motion.div>
 
-                    {/* Placed Stickers */}
+                    {/* Placed Stickers with animations */}
                     {placedStickers.map((sticker) => (
-                      <div
+                      <motion.div
                         key={sticker.id}
                         draggable
                         onDragStart={(e) => {
@@ -284,28 +322,42 @@ export default function LetterEditor() {
                         onDrag={(e) => handleStickerDrag(e, sticker.id)}
                         onDragEnd={() => setIsDragging(false)}
                         onClick={() => handleStickerClick(sticker)}
-                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move hover:scale-110 transition-transform ${
+                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move ${
                           selectedSticker?.id === sticker.id ? 'ring-2 ring-rose-500 ring-offset-2 rounded-full' : ''
                         }`}
                         style={{
                           left: `${sticker.x}%`,
                           top: `${sticker.y}%`,
-                          transform: `translate(-50%, -50%) rotate(${sticker.rotation}deg) scale(${sticker.size})`,
                           fontSize: '2rem'
                         }}
+                        initial={{ scale: 0, rotate: 0 }}
+                        animate={{
+                          scale: sticker.size,
+                          rotate: sticker.rotation,
+                          x: '-50%',
+                          y: '-50%'
+                        }}
+                        whileHover={{ scale: sticker.size * 1.1 }}
+                        whileTap={{ scale: sticker.size * 0.9 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 10 }}
                       >
                         {stickers.find(s => s.id === sticker.type)?.emoji}
-                      </div>
+                      </motion.div>
                     ))}
 
                     {signaturePadRef.current?.toDataURL() && (
-                      <div className="absolute bottom-8 right-8 max-w-[200px]">
+                      <motion.div
+                        className="absolute bottom-8 right-8 max-w-[200px]"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
                         <img
                           src={signaturePadRef.current.toDataURL()}
                           alt="Signature"
                           className="w-full"
                         />
-                      </div>
+                      </motion.div>
                     )}
                   </div>
                 </motion.div>
@@ -337,6 +389,12 @@ export default function LetterEditor() {
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         letterUrl={window.location.href}
+      />
+
+      <GenerateLetterModal
+        isOpen={showGenerateModal}
+        onClose={() => setShowGenerateModal(false)}
+        onGenerated={handleGeneratedContent}
       />
     </div>
   );
