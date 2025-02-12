@@ -20,8 +20,32 @@ export default function Auth() {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+    } catch (err: any) {
+      let errorMessage = 'An error occurred during authentication.';
+
+      // Handle specific Firebase auth errors
+      switch (err.code) {
+        case 'auth/invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/user-disabled':
+          errorMessage = 'This account has been disabled.';
+          break;
+        case 'auth/user-not-found':
+          errorMessage = 'No account found with this email.';
+          break;
+        case 'auth/wrong-password':
+          errorMessage = 'Incorrect password.';
+          break;
+        case 'auth/email-already-in-use':
+          errorMessage = 'An account with this email already exists.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password should be at least 6 characters.';
+          break;
+      }
+
+      setError(errorMessage);
     }
   };
 
