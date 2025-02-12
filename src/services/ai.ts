@@ -1,58 +1,75 @@
 import { HfInference } from '@huggingface/inference';
 import OpenAI from 'openai';
 
-const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY);
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
-
 interface GenerateLetterParams {
-  recipient: string;
-  occasion?: string;
-  tone?: 'romantic' | 'playful' | 'poetic' | 'formal';
-  length?: 'short' | 'medium' | 'long';
+  prompt: string;
+  context?: string;
 }
 
 export async function generateLetter({
-  recipient,
-  occasion = 'love letter',
-  tone = 'romantic',
-  length = 'medium'
+  prompt,
+  context = ''
 }: GenerateLetterParams): Promise<string> {
   try {
-    // First try OpenAI
-    try {
-      const completion = await openai.chat.completions.create({
-        messages: [{
-          role: "system",
-          content: "You are an expert love letter writer who can create beautiful, heartfelt messages."
-        }, {
-          role: "user",
-          content: `Write a ${length} ${tone} love letter for ${recipient}${occasion ? ` for ${occasion}` : ''}.`
-        }],
-        model: "gpt-3.5-turbo",
-      });
+    // Try OpenAI first if API key is available
+    if (import.meta.env.VITE_OPENAI_API_KEY) {
+      try {
+        const openai = new OpenAI({
+          apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+        });
 
-      return completion.choices[0]?.message?.content || '';
-    } catch (error) {
-      console.error('OpenAI error:', error);
-
-      // Fallback to HuggingFace
-      const response = await hf.textGeneration({
-        model: 'gpt2',
-        inputs: `Dear ${recipient},\n\nThis is a ${tone} love letter for ${occasion}:\n\n`,
-        parameters: {
-          max_new_tokens: length === 'short' ? 100 : length === 'medium' ? 200 : 300,
+        const response = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that writes thoughtful, personal letters. Your responses should be warm, genuine, and well-structured."
+            },
+            {
+              role: "user",
+              content: `Previous context:\n${context}\n\nWrite a letter response for: ${prompt}`
+            }
+          ],
           temperature: 0.7,
-          top_p: 0.9,
-        }
-      });
+          max_tokens: 500
+        });
 
-      return response.generated_text;
+        return response.choices[0]?.message?.content || '';
+      } catch (error) {
+        console.warn('OpenAI error, falling back to HuggingFace:', error);
+      }
     }
+
+    // Always fallback to HuggingFace if OpenAI fails or is not configured
+    const hf = new HfInference(import.meta.env.VITE_HUGGINGFACE_API_KEY);
+
+    const response = await hf.textGeneration({
+      model: 'mistralai/Mistral-7B-Instruct-v0.1',
+      inputs: `<s>[INST] Write a thoughtful letter response.
+
+Previous context:
+${context}
+
+Request: ${prompt}
+
+Write a well-structured, coherent response that would be appropriate for a letter. [/INST]</s>`,
+      parameters: {
+        max_new_tokens: 500,
+        temperature: 0.7,
+        top_p: 0.9,
+        repetition_penalty: 1.2,
+        do_sample: true
+      }
+    });
+
+    // Clean up the response
+    let text = response.generated_text;
+    text = text.replace(/\[INST\].*?\[\/INST\]/s, '').trim();
+    text = text.replace(/<s>|<\/s>/g, '').trim();
+
+    return text;
   } catch (error) {
     console.error('AI generation error:', error);
-    throw new Error('Failed to generate letter. Please try again.');
+    return "I apologize, but I'm having trouble generating content right now. You can try writing your message manually, or try again later.";
   }
 }
