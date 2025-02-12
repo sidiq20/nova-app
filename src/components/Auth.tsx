@@ -14,6 +14,11 @@ export default function Auth() {
     e.preventDefault();
     setError('');
 
+    if (!auth) {
+      setError('Authentication is not initialized. Please check your configuration.');
+      return;
+    }
+
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
