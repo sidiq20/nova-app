@@ -4,6 +4,8 @@ import { PenLine, Heart, Sparkles, Send } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 
+
+
 interface HeroProps {
   onGetStarted: () => void;
 }
@@ -147,7 +149,7 @@ export default function Hero({ onGetStarted }: HeroProps) {
               <div className="absolute inset-0 bg-gradient-to-br from-rose-100 to-indigo-100 rounded-3xl transform rotate-6"></div>
               <div className="absolute inset-0 bg-white rounded-3xl shadow-xl">
                 <img
-                  src="https://images.unsplash.com/photo-1597336374828-43e9de844c61"
+                  src="/assets/paper/paper1.png"
                   alt="Letter preview"
                   className="w-full h-full object-cover rounded-3xl opacity-20"
                 />
