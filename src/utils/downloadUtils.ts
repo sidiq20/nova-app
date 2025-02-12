@@ -7,6 +7,7 @@ export const downloadAsImage = async (elementRef: React.RefObject<HTMLDivElement
   const canvas = await html2canvas(elementRef.current, {
     useCORS: true,
     scale: 2,
+    height: elementRef.current.scrollHeight + 100, // Increased height
     backgroundColor: null,
     onclone: (clonedDoc, element) => {
       const stickers = element.querySelectorAll('[draggable="true"]');
@@ -29,6 +30,7 @@ export const downloadAsPDF = async (elementRef: React.RefObject<HTMLDivElement>)
   const canvas = await html2canvas(elementRef.current, {
     useCORS: true,
     scale: 2,
+    height: elementRef.current.scrollHeight + 100, // Increased height
     backgroundColor: null,
     onclone: (clonedDoc, element) => {
       const stickers = element.querySelectorAll('[draggable="true"]');
