@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import SignaturePad from 'react-signature-canvas';
 import { Trash2, Download, FileImage, File as FilePdf, Share2, Menu, Sparkles } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
@@ -32,7 +32,6 @@ export default function LetterEditor() {
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>('left');
   const [placedStickers, setPlacedStickers] = useState<Sticker[]>([]);
   const [selectedSticker, setSelectedSticker] = useState<Sticker | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -47,13 +46,47 @@ export default function LetterEditor() {
   const previewRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleStickerClick = (sticker: Sticker) => {
+  useEffect(() => {
+    const handleResize = () => {
+      if (previewRef.current) {
+        const width = previewRef.current.offsetWidth;
+        const height = width * 1.4142; // A4 ratio
+        previewRef.current.style.height = `${height}px`;
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const addSticker = (type: string) => {
+    const newSticker = {
+      id: Math.random().toString(),
+      type,
+      x: 50,
+      y: 50,
+      rotation: Math.random() * 30 - 15,
+      size: 1
+    };
+    setPlacedStickers([...placedStickers, newSticker]);
+  };
+
+  const handleStickerClick = (sticker: Sticker, e: React.MouseEvent) => {
+    e.stopPropagation();
     setSelectedSticker(sticker);
   };
 
+  const handleStickerMove = (stickerId: string, x: number, y: number) => {
+    setPlacedStickers(stickers =>
+      stickers.map(s =>
+        s.id === stickerId ? { ...s, x, y } : s
+      )
+    );
+  };
+
   const handleStickerDuplicate = () => {
-    if (selectedSticker && containerRef.current) {
-      const containerRect = containerRef.current.getBoundingClientRect();
+    if (selectedSticker) {
       const newSticker = {
         ...selectedSticker,
         id: Math.random().toString(),
@@ -82,44 +115,6 @@ export default function LetterEditor() {
     }
   };
 
-  const handleStickerMove = (x: number, y: number) => {
-    if (selectedSticker) {
-      setPlacedStickers(stickers =>
-        stickers.map(s =>
-          s.id === selectedSticker.id ? { ...s, x, y } : s
-        )
-      );
-      setSelectedSticker(prev => prev ? { ...prev, x, y } : null);
-    }
-  };
-
-  const addSticker = (type: string) => {
-    const newSticker = {
-      id: Math.random().toString(),
-      type,
-      x: 50,
-      y: 50,
-      rotation: Math.random() * 30 - 15,
-      size: 1
-    };
-    setPlacedStickers([...placedStickers, newSticker]);
-  };
-
-  const handleStickerDrag = (e: React.DragEvent, stickerId: string) => {
-    e.preventDefault();
-    if (!containerRef.current) return;
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    const y = ((e.clientY - containerRect.top) / containerRect.height) * 100;
-
-    setPlacedStickers(stickers =>
-      stickers.map(s =>
-        s.id === stickerId ? { ...s, x, y } : s
-      )
-    );
-  };
-
   const clearSignature = () => {
     if (signaturePadRef.current) {
       signaturePadRef.current.clear();
@@ -128,30 +123,18 @@ export default function LetterEditor() {
 
   const handleDownload = async (type: 'pdf' | 'image') => {
     if (!containerRef.current) return;
-    const color = colors.find(c => c.id === selectedColor)?.value || '#ffffff';
-    containerRef.current.style.backgroundColor = color;
-
     if (type === 'pdf') {
       await downloadAsPDF(containerRef);
     } else {
       await downloadAsImage(containerRef);
     }
-
-    containerRef.current.style.backgroundColor = '';
   };
 
-  const updateSettings = (newSettings: Partial<typeof settings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-  };
-
-  const handleGeneratedContent = (generatedContent: string) => {
-    setContent(generatedContent);
-  };
+  const selectedColorData = colors.find(c => c.id === selectedColor);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex flex-col lg:flex-row">
-        {/* Mobile Header - Simplified with just icons */}
         <div className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <button
             onClick={() => setShowSidebar(!showSidebar)}
@@ -181,7 +164,6 @@ export default function LetterEditor() {
           </div>
         </div>
 
-        {/* Sidebar */}
         <div className={`
           fixed inset-0 z-40 lg:relative lg:z-0
           ${showSidebar ? 'block' : 'hidden lg:block'}
@@ -192,7 +174,7 @@ export default function LetterEditor() {
           </div>
         </div>
 
-        <div className="flex-1">
+        <div className="flex-1 overflow-hidden">
           <EditorToolbar
             alignment={alignment}
             setAlignment={setAlignment}
@@ -210,13 +192,12 @@ export default function LetterEditor() {
 
           <div className="max-w-[1920px] mx-auto p-4 lg:p-8">
             <div className="grid lg:grid-cols-2 gap-8">
-              {/* Editor Section */}
               <div className="bg-white rounded-2xl shadow-lg p-4 lg:p-6 border border-gray-100">
                 <TextareaAutosize
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Write your letter here..."
-                  className="w-full resize-none border-0 focus:ring-0 focus:outline-none"
+                  className="w-full resize-none border-0 focus:ring-0 focus:outline-none whitespace-pre-wrap break-words"
                   style={{
                     fontFamily: selectedFont,
                     fontSize: `${settings.fontSize}px`
@@ -224,14 +205,13 @@ export default function LetterEditor() {
                   minRows={10}
                 />
 
-                {/* AI Generation Button */}
                 <div className="mt-4">
                   <button
                     onClick={() => setShowGenerateModal(true)}
                     className="w-full flex items-center justify-center gap-2 p-3 bg-gradient-to-r from-rose-400 to-rose-500 text-white rounded-lg hover:from-rose-500 hover:to-rose-600 transition-all duration-200 group"
                   >
                     <Sparkles className="w-5 h-5 transition-transform group-hover:scale-110" />
-                    <span>Generate with AI</span>
+                    <span>Add More Content</span>
                   </button>
                 </div>
 
@@ -255,7 +235,6 @@ export default function LetterEditor() {
                   </div>
                 </div>
 
-                {/* Download Options */}
                 <div className="mt-6 flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={() => handleDownload('pdf')}
@@ -274,91 +253,115 @@ export default function LetterEditor() {
                 </div>
               </div>
 
-              {/* Preview Section - Increased width and better padding */}
               <div
                 ref={containerRef}
-                className={`rounded-2xl p-4 lg:p-8 transition-colors duration-200 border-2 ${
-                  colors.find(c => c.id === selectedColor)?.border || 'border-gray-200'
-                }`}
-                onDragOver={(e) => e.preventDefault()}
+                style={{
+                  backgroundColor: selectedColorData?.value || '#ffffff',
+                  padding: 'clamp(1rem, 3vw, 2rem)',
+                  borderRadius: '1rem',
+                  transition: 'background-color 0.3s ease'
+                }}
+                className="relative w-full"
               >
                 <motion.div
                   ref={previewRef}
-                  className="bg-white rounded-2xl shadow-lg min-h-[800px] relative overflow-hidden"
+                  className="preview-content relative bg-white rounded-xl shadow-2xl overflow-visible w-full"
                   style={{
                     backgroundImage: `url(${papers[selectedPaper].full})`,
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center'
+                    backgroundPosition: 'center',
                   }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
                 >
-                  <div className="absolute inset-0 bg-white/90">
-                    <motion.div
-                      className="p-12 lg:p-16 whitespace-pre-wrap mx-auto"
-                      style={{
-                        maxWidth: '90%',
-                        textAlign: alignment,
-                        fontFamily: selectedFont,
-                        fontSize: `${settings.fontSize * 1.5}px`
-                      }}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {content || 'Your letter preview will appear here...'}
-                    </motion.div>
-
-                    {/* Placed Stickers with animations */}
-                    {placedStickers.map((sticker) => (
-                      <motion.div
-                        key={sticker.id}
-                        draggable
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/plain', sticker.id);
-                          setIsDragging(true);
-                        }}
-                        onDrag={(e) => handleStickerDrag(e, sticker.id)}
-                        onDragEnd={() => setIsDragging(false)}
-                        onClick={() => handleStickerClick(sticker)}
-                        className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-move ${
-                          selectedSticker?.id === sticker.id ? 'ring-2 ring-rose-500 ring-offset-2 rounded-full' : ''
-                        }`}
-                        style={{
-                          left: `${sticker.x}%`,
-                          top: `${sticker.y}%`,
-                          fontSize: '2rem'
-                        }}
-                        initial={{ scale: 0, rotate: 0 }}
-                        animate={{
-                          scale: sticker.size,
-                          rotate: sticker.rotation,
-                          x: '-50%',
-                          y: '-50%'
-                        }}
-                        whileHover={{ scale: sticker.size * 1.1 }}
-                        whileTap={{ scale: sticker.size * 0.9 }}
-                        transition={{ type: "spring", stiffness: 200, damping: 10 }}
+                  <motion.div
+                    className="p-6 md:p-12 whitespace-pre-wrap break-words mx-auto relative z-10"
+                    style={{
+                      maxWidth: '90%',
+                      textAlign: alignment,
+                      fontFamily: `${selectedFont}, serif`,
+                      fontSize: `clamp(${settings.fontSize}px, 2vw, ${settings.fontSize * 1.5}px)`
+                    }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                  >
+                    {content || (
+                      <motion.span
+                        initial={{ opacity: 0.5 }}
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="text-gray-400"
                       >
-                        {stickers.find(s => s.id === sticker.type)?.emoji}
-                      </motion.div>
-                    ))}
-
-                    {signaturePadRef.current?.toDataURL() && (
-                      <motion.div
-                        className="absolute bottom-8 right-8 max-w-[200px]"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <img
-                          src={signaturePadRef.current.toDataURL()}
-                          alt="Signature"
-                          className="w-full"
-                        />
-                      </motion.div>
+                        Your letter preview will appear here...
+                      </motion.span>
                     )}
+                  </motion.div>
+
+                  {signaturePadRef.current?.toDataURL() && (
+                    <motion.div
+                      className="absolute bottom-12 right-12"
+                      style={{
+                        maxWidth: 'min(200px, 30%)',
+                        zIndex: 10,
+                      }}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    >
+                      <img
+                        src={signaturePadRef.current.toDataURL()}
+                        alt="Signature"
+                        className="w-full filter drop-shadow-md"
+                        draggable={false}
+                      />
+                    </motion.div>
+                  )}
+
+                  <div className="absolute inset-0">
+                    <div className="relative w-full h-full">
+                      {placedStickers.map((sticker) => (
+                        <motion.div
+                          key={sticker.id}
+                          className="sticker absolute cursor-move"
+                          style={{
+                            left: `${sticker.x}%`,
+                            top: `${sticker.y}%`,
+                            fontSize: 'clamp(1rem, 3vw, 2rem)',
+                            zIndex: 20,
+                          }}
+                          initial={{ scale: 0, rotate: 0 }}
+                          animate={{
+                            scale: sticker.size,
+                            rotate: sticker.rotation,
+                          }}
+                          whileHover={{
+                            scale: sticker.size * 1.1,
+                          }}
+                          drag
+                          dragMomentum={false}
+                          onDrag={(e, info) => {
+                            if (!previewRef.current) return;
+                            const rect = previewRef.current.getBoundingClientRect();
+                            const x = ((info.point.x - rect.left) / rect.width) * 100;
+                            const y = ((info.point.y - rect.top) / rect.height) * 100;
+                            const clampedX = Math.max(0, Math.min(100, x));
+                            const clampedY = Math.max(0, Math.min(100, y));
+                            handleStickerMove(sticker.id, clampedX, clampedY);
+                          }}
+                          onClick={(e) => handleStickerClick(sticker, e)}
+                        >
+                          <motion.div
+                            className="filter drop-shadow-lg"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            {stickers.find(s => s.id === sticker.type)?.emoji}
+                          </motion.div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               </div>
@@ -367,7 +370,6 @@ export default function LetterEditor() {
         </div>
       </div>
 
-      {/* Modals */}
       <StickerModal
         sticker={selectedSticker}
         onClose={() => setSelectedSticker(null)}
@@ -382,7 +384,7 @@ export default function LetterEditor() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         settings={settings}
-        onUpdateSettings={updateSettings}
+        onUpdateSettings={setSettings}
       />
 
       <ShareModal
@@ -394,7 +396,9 @@ export default function LetterEditor() {
       <GenerateLetterModal
         isOpen={showGenerateModal}
         onClose={() => setShowGenerateModal(false)}
-        onGenerated={handleGeneratedContent}
+        onGenerated={(generatedContent) => {
+          setContent(content ? `${content}\n\n${generatedContent}` : generatedContent);
+        }}
       />
     </div>
   );
