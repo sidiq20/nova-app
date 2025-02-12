@@ -76,7 +76,10 @@ export default function EditorToolbar({
               <Share2 className="w-5 h-5" />
               <span>Share</span>
             </button>
-            <button className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-colors">
+            <button
+              onClick={onOpenSettings}
+              className="p-2 hover:bg-rose-50 hover:text-rose-500 rounded-lg transition-colors"
+            >
               <Settings className="w-5 h-5" />
             </button>
           </div>
