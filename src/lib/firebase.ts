@@ -1,6 +1,6 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 
 let app: FirebaseApp | undefined;
 let db: Firestore | undefined;
@@ -26,11 +26,11 @@ const hasRequiredConfig = Object.values(firebaseConfig).every(value =>
 if (hasRequiredConfig) {
   try {
     app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
     auth = getAuth(app);
+    db = getFirestore(app);
 
     // Initialize auth persistence
-    auth.setPersistence('browserLocal');
+    setPersistence(auth, browserLocalPersistence).catch(console.error);
   } catch (error) {
     console.error('Firebase initialization error:', error);
   }
