@@ -2,13 +2,22 @@ import React from 'react';
 import { Copy, Trash2, Move, Maximize } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface Sticker {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  rotation: number;
+  size: number;
+}
+
 interface StickerModalProps {
-  sticker: any;
+  sticker: Sticker | null;
   onClose: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onSizeChange: (size: number) => void;
-  onMove: (x: number, y: number) => void;
+  onMove: (stickerId: string, x: number, y: number) => void;
   size: number;
 }
 
@@ -79,7 +88,7 @@ export default function StickerModal({
                     min="0"
                     max="100"
                     value={sticker.x}
-                    onChange={(e) => onMove(parseFloat(e.target.value), sticker.y)}
+                    onChange={(e) => onMove(sticker.id, parseFloat(e.target.value), sticker.y)}
                     className="w-full accent-rose-500"
                   />
                 </div>
@@ -90,7 +99,7 @@ export default function StickerModal({
                     min="0"
                     max="100"
                     value={sticker.y}
-                    onChange={(e) => onMove(sticker.x, parseFloat(e.target.value))}
+                    onChange={(e) => onMove(sticker.id, sticker.x, parseFloat(e.target.value))}
                     className="w-full accent-rose-500"
                   />
                 </div>

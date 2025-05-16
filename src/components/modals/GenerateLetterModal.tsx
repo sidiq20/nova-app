@@ -2,6 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wand2, X, Loader2, Send, User, Bot } from 'lucide-react';
 import { generateLetter } from '../../services/ai';
+// Import fonts with proper type definition
+import { fonts } from '../../data/fonts';
+
+interface Font {
+  id: string;
+  name: string;
+  family: string;
+}
 
 interface Message {
   role: 'user' | 'assistant';
@@ -12,12 +20,14 @@ interface GenerateLetterModalProps {
   isOpen: boolean;
   onClose: () => void;
   onGenerated: (content: string) => void;
+  selectedFont?: string;
 }
 
 export default function GenerateLetterModal({
   isOpen,
   onClose,
-  onGenerated
+  onGenerated,
+  selectedFont = 'great-vibes'
 }: GenerateLetterModalProps) {
   const [messages, setMessages] = useState<Message[]>([{
     role: 'assistant',
@@ -113,7 +123,14 @@ export default function GenerateLetterModal({
                     ? 'bg-white border border-gray-200'
                     : 'bg-rose-500 text-white'}
                 `}>
-                  <p className="text-sm leading-relaxed">{message.content}</p>
+                  <p 
+                    className="text-sm leading-relaxed"
+                    style={message.role === 'assistant' ? { 
+                      fontFamily: (fonts.find((f: Font) => f.id === selectedFont)?.family || fonts[0].family) 
+                    } : {}}
+                  >
+                    {message.content}
+                  </p>
                   {message.role === 'assistant' && message.content.length > 50 && (
                     <button
                       onClick={() => handleUseContent(message.content)}

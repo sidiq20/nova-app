@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import SignaturePad from 'react-signature-canvas';
-import { Trash2, Download, FileImage, File as FilePdf, Share2, Menu, Sparkles } from 'lucide-react';
+import { Trash2, FileImage, File as FilePdf, Share2, Menu, Sparkles } from 'lucide-react';
 import TextareaAutosize from 'react-textarea-autosize';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useLetterStore } from '../store/letterStore';
+import { motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 import EditorToolbar from './EditorToolbar';
 import StickerModal from './modals/StickerModal';
@@ -100,6 +99,11 @@ export default function LetterEditor() {
         s.id === stickerId ? { ...s, x: clampedX, y: clampedY } : s
       )
     );
+    
+    // Update selected sticker if it's the one being moved
+    if (selectedSticker && selectedSticker.id === stickerId) {
+      setSelectedSticker({ ...selectedSticker, x: clampedX, y: clampedY });
+    }
   };
 
   const handleStickerSizeChange = (size: number) => {
@@ -307,7 +311,7 @@ export default function LetterEditor() {
                   ref={previewRef}
                   className="preview-content relative bg-white rounded-xl shadow-2xl overflow-visible w-full"
                   style={{
-                    backgroundImage: `url(${papers[selectedPaper].full})`,
+                    backgroundImage: `url(${(papers as any)[selectedPaper]?.full || papers.classic.full})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                   }}
@@ -380,7 +384,19 @@ export default function LetterEditor() {
                           drag
                           dragMomentum={false}
                           dragConstraints={previewRef}
-                          onDragEnd={(e, info) => {
+                          dragElastic={0.1} // Reduce elasticity for more precise positioning
+                          onDrag={(_, info) => {
+                            // Update position during drag for smoother experience
+                            if (!previewRef.current) return;
+                            const rect = previewRef.current.getBoundingClientRect();
+                            const x = ((info.point.x - rect.left) / rect.width) * 100;
+                            const y = ((info.point.y - rect.top) / rect.height) * 100;
+                            // Only update position if it's within bounds
+                            if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+                              handleStickerMove(sticker.id, x, y);
+                            }
+                          }}
+                          onDragEnd={(_, info) => {
                             if (!previewRef.current) return;
                             const rect = previewRef.current.getBoundingClientRect();
                             const x = ((info.point.x - rect.left) / rect.width) * 100;
@@ -421,7 +437,9 @@ export default function LetterEditor() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         settings={settings}
-        onUpdateSettings={setSettings}
+        onUpdateSettings={(updatedSettings) => {
+          setSettings(prevSettings => ({ ...prevSettings, ...updatedSettings }));
+        }}
       />
 
       <ShareModal
@@ -433,6 +451,7 @@ export default function LetterEditor() {
       <GenerateLetterModal
         isOpen={showGenerateModal}
         onClose={() => setShowGenerateModal(false)}
+        selectedFont={selectedFont}
         onGenerated={(generatedContent) => {
           setContent(content ? `${content}\n\n${generatedContent}` : generatedContent);
         }}

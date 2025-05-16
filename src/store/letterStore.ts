@@ -69,22 +69,59 @@ export const useLetterStore = create<LetterStore>((set, get) => ({
         return;
       }
 
-      const q = query(
-        collection(db, 'letters'),
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
+      try {
+        // Try with composite index first
+        const q = query(
+          collection(db, 'letters'),
+          where('userId', '==', user.uid),
+          orderBy('createdAt', 'desc')
+        );
 
-      const snapshot = await getDocs(q);
-      const letters = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date(),
-        updatedAt: doc.data().updatedAt?.toDate() || new Date(),
-        stickers: doc.data().stickers || []
-      })) as Letter[];
+        const snapshot = await getDocs(q);
+        const letters = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate() || new Date(),
+          updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+          stickers: doc.data().stickers || []
+        })) as Letter[];
 
-      set({ letters, isLoading: false, error: null });
+        set({ letters, isLoading: false, error: null });
+      } catch (indexError: any) {
+        // If index error, try without the orderBy
+        if (indexError.message && indexError.message.includes('index')) {
+          console.warn('Index error, fetching without ordering:', indexError);
+          try {
+            // Fallback query without ordering
+            const fallbackQuery = query(
+              collection(db, 'letters'),
+              where('userId', '==', user.uid)
+            );
+
+            const snapshot = await getDocs(fallbackQuery);
+            let letters = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              createdAt: doc.data().createdAt?.toDate() || new Date(),
+              updatedAt: doc.data().updatedAt?.toDate() || new Date(),
+              stickers: doc.data().stickers || []
+            })) as Letter[];
+
+            // Sort manually in memory
+            letters = letters.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+            set({ 
+              letters, 
+              isLoading: false, 
+              error: 'Missing database index. Some features may be limited. Please contact support.'
+            });
+          } catch (fallbackError) {
+            throw fallbackError; // Re-throw to be caught by outer catch
+          }
+        } else {
+          throw indexError; // Re-throw if not an index error
+        }
+      }
     } catch (error) {
       console.error('Error fetching letters:', error);
       set({
